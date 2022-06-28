@@ -1,0 +1,673 @@
+<html>
+	<head>
+		<title>Mario Game</title>
+		<meta charset="UTF-8">
+	</head>
+	<body>
+		<br>
+		<canvas id="myCanvas" width="500" height="460" style="border:1px solid #cccccc; background-color:powderblue;" ></canvas>
+
+		<script type="text/javascript">
+
+
+//SPRITES ...................................................................................................................
+			class Sprite
+			{
+				constructor(x, y, image_url, type)
+				{
+					this.x = x;
+					this.y = y;
+					this.image = new Image();
+					this.image.src = image_url;
+					this.type = type;
+				}
+			}
+
+//MARIO ...................................................................................................................
+			class Mario extends Sprite
+			{
+				constructor(x, y, image_url, type)
+				{
+					super(x, y, image_url, type);
+					let numFramesInAir = 0;
+					this.marioImageNum = 0;
+					this.vert_vel = 12;
+					this.height = 95;
+					this.width = 50;
+				}
+				
+				MarioJump()  
+				{
+					if(this.numFramesInAir < 5)
+						this.vert_vel -= 20;
+				}
+				
+				update(m)
+				{
+					this.model = m;
+					this.vert_vel += 11;
+					this.y += this.vert_vel;
+					this.numFramesInAir++;
+					
+					if(this.y > 320)
+					{
+						this.vert_vel = 0;
+						this.y = 320;
+						this.numFramesInAir = 0;
+					}
+					if (this.y < 0)
+					{
+						this.y = 0;
+					}
+			
+					
+				}
+				
+				updateMarioImage()
+				{
+					this.marioImageNum++;
+					if(this.marioImageNum > 4)    
+						this.marioImageNum = 0;
+				}
+				
+				savePreviousCoordinates()
+				{
+					this.px = this.x;
+					this.py = this.y;
+				}
+				
+				getOutOfTube(t)
+				{
+					let marioRight = this.x + this.width;
+					let marioLeft = this.x;
+					let tubeRight = t.x + t.width;
+					let tubeLeft = t.x;
+					let marioHead = this.y;
+					let marioToes = this.y + this.height;
+					let tubeTop = t.y;
+					let tubeBottom = t.y + t.height;
+					
+					if(marioRight >= tubeLeft && this.px+width <= tubeLeft)
+						this.x = t.x - this.width;
+					if(marioLeft <= tubeRight && this.px >= tubeRight)
+						this.x = tubeRight;
+					if(marioToes >= tubeTop && this.py+this.height <= tubeTop)
+					{
+						this.y = t.y - this.height;
+						this.vert_vel = 0;
+						this.numFramesInAir = 0;
+					}
+				}
+				
+				getOutOfTube(t)
+				{
+					this.marioRight = this.x + this.width;
+					this.marioLeft = this.x;
+					this.tubeRight = t.x + t.width;
+					this.tubeLeft = t.x;
+					this.marioHead = this.y;
+					this.marioToes = this.y + this.height;
+					this.tubeTop = t.y;
+					this.tubeBottom = t.y + t.height;
+					
+					if(this.marioRight >= this.tubeLeft && this.px+this.width <= this.tubeLeft)
+						this.x = t.x - this.width;
+					if(this.marioLeft <= this.tubeRight && this.px >= this.tubeRight)
+						this.x = this.tubeRight;
+					if(this.marioToes >= this.tubeTop && this.py+this.height <= this.tubeTop)
+					{
+						this.y = t.y - this.height;
+						this.vert_vel = 0;
+						this.numFramesInAir = 0;
+					}
+				}
+				
+				getImage()
+				{
+					this.image = new Image();
+					if(this.marioImageNum == 0)
+						this.image.src = "mario1.png";
+					if(this.marioImageNum == 1)
+						this.image.src = "mario2.png";
+					if(this.marioImageNum == 2)
+						this.image.src = "mario3.png";
+					if(this.marioImageNum == 3)
+						this.image.src = "mario4.png";
+					if(this.marioImageNum == 4)
+						this.image.src = "mario5.png"
+						
+					return this.image;
+				}
+
+			}
+
+//FIREBALL...................................................................................................................
+			class Fireball extends Sprite
+			{
+				constructor(x, y, image_url, type, m)
+				{
+					super(x, y, image_url, type);
+					this.height = 48;
+					this.width = 40;
+					this.vert_vel = 12;
+					this.hor_vel = 10;
+				}
+				
+				update(m)
+				{
+					this.model = m;
+					this.vert_vel += 3;				// updates velocity
+					this.y += this.vert_vel;					// updates y value
+					this.x += (this.hor_vel);		// updates x value in proper direction
+					
+					if(this.y > 370)
+					{
+						this.vert_vel = -24;
+						this.y = 370;
+					}
+				}
+				
+				getImage()
+				{
+					this.image = new Image();
+					this.image.src = "fireball.png";
+					return this.image;
+				}
+			}
+
+
+//GOOMBA...................................................................................................................
+			class Goomba extends Sprite
+			{
+				constructor(x, y, image_url, type)
+				{
+					super(x, y, image_url, type);
+					this.width = 40;
+					this.height = 48;
+					this.vert_vel = 10;
+					this.speed = 3;
+					this.tubeCollision = false;
+					this.flameCollision = false;
+					this.framesInFlames = 0;
+					this.goombaOnGround = 368;
+					this.direction = 1;
+				}
+				
+				update(m)
+				{
+					this.model = m;
+					if(this.y < this.goombaOnGround)		// Makes goomba fall if he's dropped in the air
+					{
+						this.y += this.vert_vel;
+					}
+					
+					if(this.y > this.goombaOnGround)		// Sets goombas constant position to ground if below
+						this.y = this.goombaOnGround;
+					
+					//console.log("bool flameCollision = " + this.flameCollision);
+					//console.log("framesInFlames = " + this.framesInFlames);
+					if(this.flameCollision == true)			// increments number of frames goomba suffers
+						this.framesInFlames++;
+						
+						
+					for(let i = 0; i < m.sprites.length; i++)
+					{
+						let tube = m.sprites[i];
+						if(m.sprites[i].type == "tube")
+						{
+							if(tube.x <= this.x + this.width && tube.x >= this.x)
+							{
+								this.tubeCollision = true;
+								break;
+							}
+							if(tube.x + tube.width >= this.x && tube.x + tube.width <= this.x + this.width )
+							{
+								this.tubeCollision = true;
+								break;
+							}
+							else
+								this.tubeCollision = false;
+								
+						}
+					}	
+					
+					
+					if(this.tubeCollision == true)
+						this.direction = (this.direction * -1);
+						
+					if(this.y == this.goombaOnGround)
+					{
+						//console.log("goomba y value == " + this.y + "goomba x value == " + this.x + " and this.direction = " + this.direction);
+						this.x = this.x + (3 * this.direction);
+					}
+					
+					this.enflamedGoomba();
+					if(this.framesInFlames > 15)
+					{
+						//console.log("framesInFlames = " + this.framesInFlames);
+						this.removeGoomba();
+					}
+				}
+				
+				enflamedGoomba()
+				{
+					for(let i = 0; i < this.model.sprites.length; i++)
+					{
+						let f = this.model.sprites[i];
+						if(f.type == "fireball")
+						{
+							if(this.model.collision(f, this))
+							{
+								this.image.src = "goomba_fire.png";
+								this.flameCollision = true;
+								this.model.sprites.splice(i, 1);
+								break;
+							}
+						}
+					}
+				}
+				
+				removeGoomba()
+				{
+					for(let i = 0; i < this.model.sprites.length; i++)
+					{
+						if(this.model.sprites[i].type == "goomba")
+						{
+							let tempG = this.model.sprites[i];
+							if(tempG.x == this.x)
+							{
+								this.model.sprites.splice(i, 1);
+								break;
+							}
+						}
+					}
+				}
+				
+				getImage()
+				{
+					if(this.flameCollision == true)
+					{
+						this.image = new Image();	
+						this.image.src = "goomba_fire.png";
+					}
+					else
+					{
+						this.image = new Image();
+						this.image.src = "goomba.png"
+					}
+					
+					return this.image;
+				}
+
+			}
+
+
+//TUBE...................................................................................................................
+			class Tube extends Sprite
+			{
+				constructor(x, y, image_url, type)
+				{
+					super(x, y, image_url, type);
+					this.width = 55;
+					this.height = 400;
+				}
+				
+				update(m)
+				{
+				
+				}
+				
+				IsThereATubeHere(pos_x, pos_y)
+				{
+					if (pos_x < this.x || this.x == 0)
+					{
+						return false;
+					}	
+					
+					if (pos_x > this.x + this.width)
+					{
+						return false;
+					}
+					
+					if (pos_y < this.y)
+					{
+						return false;
+					}
+					
+					if (pos_y > this.y + this.height)
+					{
+						return false;
+					}
+					
+					else
+					{
+						return true;
+					}
+				}
+				
+				getImage()
+				{
+					this.image = new Image();
+					this.image.src = "tube.png";
+					return this.image;
+				}
+
+			}
+			
+//MODEL ...................................................................................................................
+			class Model
+			{
+				constructor()
+				{
+					this.sprites = [];
+					this.mario = new Mario(70, 320, "mario1.png", "mario");
+					this.sprites.push(this.mario);
+					this.tube = new Tube(200, 270, "tube.png", "tube");
+					this.sprites.push(this.tube);
+					this.tube = new Tube(400, 340, "tube.png", "tube");
+					this.sprites.push(this.tube);
+					this.goomba = new Goomba(300, 368, "goomba.png", "goomba");
+					this.sprites.push(this.goomba);
+					this.tube = new Tube(600, 230, "tube.png", "tube");
+					this.sprites.push(this.tube);
+					this.goomba = new Goomba(670, 210, "goomba.png", "goomba");
+					this.sprites.push(this.goomba);
+					this.tube = new Tube(800, 300, "tube.png", "tube");
+					this.sprites.push(this.tube);
+					
+					
+				}		
+
+				update()
+				{
+					for(let i = 0; i < this.sprites.length; i++)
+					{
+						this.sprites[i].update(this);
+					}
+					
+					for(let i = 0; i < this.sprites.length; i++)
+					{
+						if(this.sprites[i].type == "tube")
+						{
+							let s = this.sprites[i];
+							if(this.collision(s, this.mario))
+							{
+								this.mario.getOutOfTube(s);
+							}
+						}
+					}
+				}
+				
+				addNewTube(mouse_x, mouse_y)
+				{
+					this.t = new Tube(mouse_x, mouse_y, "tube.png", "tube");
+					let tubeAlreadyExists = false;
+					
+					for(let i = this.sprites.length-1; i > 0; i--)
+					{
+						if (this.sprites[i].type == "tube")
+						{
+							let temp = this.sprites[i];
+							//console.log("Tubex: " + temp.x + ", Tubey: " + temp.y);
+							//console.log("Mousex: " + mouse_x + ", MouseY: " + mouse_y);
+							if(temp.IsThereATubeHere(mouse_x, mouse_y))
+							{
+								tubeAlreadyExists = true;
+								//console.log("collision found. removing tube");
+								this.sprites.splice(i, 1);
+								break;
+							}
+						}
+					}
+					
+					if(!tubeAlreadyExists)
+						this.sprites.push(this.t);
+				}
+				
+				collision(a, b)
+				{
+					this.spriteBRight = b.x + b.width;
+					this.spriteBLeft = b.x;
+					this.spriteARight = a.x + a.width;
+					this.spriteALeft = a.x;
+					this.spriteBTop = b.y;
+					this.spriteBBottom = b.y + b.height;
+					this.spriteATop = a.y;
+					this.spriteABottom = a.y + a.height;
+					
+					if(this.spriteBRight < this.spriteALeft)
+						return false;
+					if(this.spriteBLeft > this.spriteARight)
+						return false;
+					if(this.spriteBBottom < this.spriteATop)
+						return false;
+					if(this.spriteBTop > this.spriteABottom)
+						return false;
+					
+					return true;
+					
+				}
+				
+				addNewFireball(x, y)
+				{
+					this.f = new Fireball(x, y, "fireball.png", "fireball");
+					this.sprites.push(this.f);
+				}
+				
+				addNewGoomba(x, y)
+				{
+					this.g = new Goomba(x, y, "goomba.png", "goomba");
+					this.sprites.push(this.g);
+				}
+			}
+			
+			
+//VIEW ...................................................................................................................
+			class View
+			{
+				constructor(m)
+				{
+					this.model = m;
+					this.canvas = document.getElementById("myCanvas");
+					this.door = new Image();
+					this.door.src = "mario_door.png";
+					
+					this.bricks = new Image();
+					this.bricks.src = "newbricks.png"
+					
+					this.scrollPos = 0;
+					
+				}
+
+				update()
+				{
+					this.brickWidth = 196;
+					let ctx = this.canvas.getContext("2d");
+					ctx.clearRect(0, 0, 500, 500);
+					
+					//ctx.drawImage(this.model.sprites.getImage(), this.model.mario.x - this.scrollPos, this.model.mario.y);
+					for(let i = 0; i < this.model.sprites.length; i++)
+					{
+						let sprite = this.model.sprites[i];
+						ctx.drawImage(sprite.getImage(), sprite.x - this.scrollPos, sprite.y);
+					}
+					
+					ctx.drawImage(this.door, 0 - this.scrollPos,310);
+					ctx.drawImage(this.bricks, 0 - this.brickWidth - this.scrollPos,  415);					
+					ctx.drawImage(this.bricks, 0 - this.scrollPos, 415)
+					ctx.drawImage(this.bricks, 0 - this.scrollPos, 415);
+					ctx.drawImage(this.bricks, this.brickWidth - this.scrollPos,415);
+					ctx.drawImage(this.bricks, 392 - this.scrollPos, 415);
+					
+					// makes bricks draw themselves and undraw themselves as needed
+					if (this.scrollPos > 0)
+					{
+						for(let i = this.brickWidth * 3; i < this.scrollPos + this.brickWidth*3; i += this.brickWidth)
+						{
+							ctx.drawImage(this.bricks,i - this.scrollPos,415);
+						}
+					}		
+					
+				}
+			}
+
+			
+//CONTROLLER ...................................................................................................................
+			class Controller
+			{
+				constructor(m, v)
+				{
+					this.model = m;
+					this.view = v;
+					let keyLeft = false;
+					let keyRight = false;
+					let keyTop = false;
+					let keyBottom = false;
+					let space = true;
+					let control = false;
+					let tubeEditor = true;
+					let goombaEditor = true;
+					let fireballAllow = true;
+					let self = this;
+					this.view.canvas.addEventListener("click", function(e) {self.onClick(e); });
+					document.addEventListener('keydown', function(e) {self.keyDown(e); }, false);
+					document.addEventListener('keyup', function(e) { self.keyUp(e); }, false);
+				}
+				
+				actionPerformed(e)
+				{
+
+				}
+				
+				onClick(e)
+				{
+					if(this.tubeEditor)
+						this.model.addNewTube(e.pageX - this.view.canvas.offsetLeft + this.view.scrollPos, e.pageY - this.view.canvas.offsetTop);
+					//console.log(e.pageX);
+					//console.log(e.pageY);
+					if(this.goombaEditor)
+						this.model.addNewGoomba(e.pageX - this.view.canvas.offsetLeft + this.view.scrollPos, e.pageY - this.view.canvas.offsetTop);
+
+				}
+
+				mouseReleased(e) {    }
+				mouseEntered(e) {    }
+				mouseExited(e) {    }
+				mouseClicked(e) {    }
+				
+				keyDown(e)
+				{
+					if(e.keyCode == 39) this.keyRight = true;
+					else if(e.keyCode == 37) this.keyLeft = true;
+					else if(e.keyCode == 38) this.keyTop = true; 
+					else if(e.keyCode == 40) this.keyBottom = true; 
+					else if(e.keyCode == 32) this.space = true;
+					else if(e.keyCode == 17) this.control = true; 
+					
+					if (e.keyCode == 84) 
+					{
+						this.tubeEditor = true;
+						this.goombaEditor = false;
+					}
+					if (e.keyCode == 71) 
+					{
+						this.goombaEditor = true;
+						this.tubeEditor = false;
+					}
+				}
+				
+				keyUp(e)
+				{
+					if(e.keyCode == 39) this.keyRight = false;
+					else if(e.keyCode == 37) this.keyLeft = false;
+					else if(e.keyCode == 38) this.keyTop = false; 
+					else if(e.keyCode == 40) this.keyBottom = false; 
+					else if(e.keyCode == 32) this.space = false;
+					else if(e.keyCode == 17) this.control = false; 
+					
+					this.fireballAllow = true;
+				}
+				
+				keyTyped(e)
+				{
+					
+				}
+
+				update()
+				{
+					this.model.mario.savePreviousCoordinates();
+					if(this.keyRight == true) 
+					{
+						this.model.mario.x  += 7;
+						if(this.model.mario.x > 50 + this.view.scrollPos)
+							this.view.scrollPos += 7;
+						this.model.mario.updateMarioImage();
+						//model.mario.flip = false;
+					}
+					if(this.keyLeft && this.model.mario.x > 30) 
+					{
+						this.model.mario.x -= 7;
+						if (this.model.mario.x < 100 + this.view.scrollPos)
+							this.view.scrollPos -= 7;
+						this.model.mario.updateMarioImage();
+						//this.model.mario.flip = true;
+					}
+					
+					if(this.keyTop == true)
+					{
+						//this.model.mario.y -= 5;
+					}
+					
+					if(this.keyBottom == true)
+					{
+						//this.model.mario.y += 5;
+					}
+			//		if(keyDown) model.dest_y++;
+			//		if(keyUp) model.dest_y--;
+					if(this.space == true)
+					{
+						console.log("Space was hit");
+						// this.model.mario.x += 5;
+						this.model.mario.MarioJump();
+						this.model.mario.updateMarioImage();
+					}
+					if(this.control && this.fireballAllow)
+					{
+						this.model.addNewFireball(this.model.mario.x, this.model.mario.y);
+						this.fireballAllow = false;
+					}
+				}
+				
+			}
+//GAME ...................................................................................................................
+			
+			class Game
+			{
+				constructor()
+				{
+					this.model = new Model();
+					this.view = new View(this.model);
+					this.controller = new Controller(this.model, this.view);
+				}
+				
+				onTimer()
+				{
+					this.controller.update();
+					this.model.update();
+					this.view.update();
+				}
+
+			}
+			
+			let game = new Game();
+			let timer = setInterval(function() {game.onTimer(); }, 40);
+			
+	</script>
+	<p style="font-family:courier;"> Press 't' then click to add new tube. </p>
+	<p style="font-family:courier;"> Press 'g' then click to add new goomba. </p>
+	<p style="font-family:courier;"> Press arrow keys to move. </p>
+	<p style="font-family:courier;"> Press space bar to jump. </p>
+	<p style="font-family:courier;"> Press ctrl key to shoot fireball. </p>
+	</body>
+</html>
+
